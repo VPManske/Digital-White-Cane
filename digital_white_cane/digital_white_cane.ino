@@ -23,9 +23,9 @@ void loop() {
         if (digitaldist <= 140 && digitaldist >=100)
           analogWrite(pinout[i], 20);
         else if (digitaldist <=99 && digitaldist >= 50)
-          analogWrite(pinout[i], 50);
+          analogWrite(pinout[i], 100);
         else if (digitaldist <49 && digitaldist >=10)
-          analogWrite(pinout[i], 200);
+          analogWrite(pinout[i], 255);
         else 
           analogWrite(pinout[i], 0);
   }
