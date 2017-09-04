@@ -1,4 +1,4 @@
-#include "Adafruit_VL53L0X.h"
+#include "Adafruit_VL53L0X_local.h"
 
 #define VERSION_REQUIRED_MAJOR  1
 #define VERSION_REQUIRED_MINOR  0

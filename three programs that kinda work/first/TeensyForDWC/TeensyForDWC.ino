@@ -1,6 +1,6 @@
 /* uses i2c_t3.h works on Teensy LC and gives no errors. 
 */
-#include "Adafruit_VL53L0X.h"
+#include "Adafruit_VL53L0X_local.h"
 #include "i2c_t3_local.h"
 
 #define DEBUG true

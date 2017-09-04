@@ -20,7 +20,6 @@
   #include "WProgram.h"
 #endif
 
-//#include "Wire.h"
 #include "i2c_t3_local.h"
 #include "vl53l0x_api.h"
 
