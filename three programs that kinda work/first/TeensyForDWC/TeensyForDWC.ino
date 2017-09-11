@@ -95,7 +95,7 @@ void loop() {
     Serial.print(": ");
     Serial.print( datum.RangeMilliMeter );
     Serial.print("  ");
-    if ( datum.RangeMilliMeter < 100 ) {
+    if ( datum.RangeMilliMeter < 1000 ) {
       tcaselect(i);
       drv.begin();
 
@@ -104,7 +104,18 @@ void loop() {
       // I2C trigger by sending 'go' command
       // default, internal trigger when sending GO command
       drv.setMode(DRV2605_MODE_INTTRIG);
-      int effect = 1;
+      int effect = 0;
+      if ( datum.RangeMilliMeter < 200 ) {
+        effect = 47; // Buzz 1 - 100%
+      } else if ( datum.RangeMilliMeter < 400 ) {
+        effect = 48; // Buzz 2 - 80%
+      } else if ( datum.RangeMilliMeter < 600 ) {
+        effect = 49;  // Buzz 3 - 60%
+      } else if ( datum.RangeMilliMeter < 800 ) {
+        effect = 50;  // Buzz 4 - 40%
+       } else if ( datum.RangeMilliMeter < 1000 ) {
+        effect = 50;  // Buzz 5 - 20%
+         }
       drv.setWaveform(0, effect);
       drv.setWaveform(1, 0);
       drv.go();
