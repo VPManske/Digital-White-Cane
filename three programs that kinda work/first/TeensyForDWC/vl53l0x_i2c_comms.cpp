@@ -4,18 +4,18 @@
 //#define I2C_DEBUG
 
 int VL53L0X_i2c_init(void) {
-  Wire.begin();
+  Wire1.begin();
   return VL53L0X_ERROR_NONE;
 }
 
 int VL53L0X_write_multi(uint8_t deviceAddress, uint8_t index, uint8_t *pdata, uint32_t count) {
-  Wire.beginTransmission(deviceAddress);
-  Wire.write(index);
+  Wire1.beginTransmission(deviceAddress);
+  Wire1.write(index);
 #ifdef I2C_DEBUG
   Serial.print("\tWriting "); Serial.print(count); Serial.print(" to addr 0x"); Serial.print(index, HEX); Serial.print(": ");
 #endif
   while(count--) {
-    Wire.write((uint8_t)pdata[0]);
+    Wire1.write((uint8_t)pdata[0]);
 #ifdef I2C_DEBUG
     Serial.print("0x"); Serial.print(pdata[0], HEX); Serial.print(", ");
 #endif
@@ -24,21 +24,26 @@ int VL53L0X_write_multi(uint8_t deviceAddress, uint8_t index, uint8_t *pdata, ui
 #ifdef I2C_DEBUG
   Serial.println();
 #endif
-  Wire.endTransmission();
+  Wire1.endTransmission();
   return VL53L0X_ERROR_NONE;
 }
 
 int VL53L0X_read_multi(uint8_t deviceAddress, uint8_t index, uint8_t *pdata, uint32_t count) {
-  Wire.beginTransmission(deviceAddress);
-  Wire.write(index);
-  Wire.endTransmission();
-  Wire.requestFrom(deviceAddress, (byte)count);
+ 
+  Wire1.beginTransmission(deviceAddress);
+ 
+  Wire1.write(index);
+  
+  Wire1.endTransmission();
+  
+  Wire1.requestFrom(deviceAddress, (byte)count);
+
 #ifdef I2C_DEBUG
   Serial.print("\tReading "); Serial.print(count); Serial.print(" from addr 0x"); Serial.print(index, HEX); Serial.print(": ");
 #endif
 
   while (count--) {
-    pdata[0] = Wire.read();
+    pdata[0] = Wire1.read();
 #ifdef I2C_DEBUG
     Serial.print("0x"); Serial.print(pdata[0], HEX); Serial.print(", ");
 #endif
@@ -106,3 +111,4 @@ int VL53L0X_read_dword(uint8_t deviceAddress, uint8_t index, uint32_t *data) {
 
   return r;
 }
+

@@ -1,5 +1,5 @@
 /*******************************************************************************
-Copyright © 2015, STMicroelectronics International N.V.
+Copyright ï¿½ 2015, STMicroelectronics International N.V.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -271,3 +271,4 @@ VL53L0X_Error VL53L0X_PollingDelay(VL53L0X_DEV Dev){
     LOG_FUNCTION_END(status);
     return status;
 }
+

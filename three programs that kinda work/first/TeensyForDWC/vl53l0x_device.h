@@ -1,5 +1,5 @@
 /*******************************************************************************
-Copyright © 2016, STMicroelectronics International N.V.
+Copyright ï¿½ 2016, STMicroelectronics International N.V.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -253,5 +253,6 @@ typedef uint8_t VL53L0X_GpioFunctionality;
 #endif
 
 /* _VL53L0X_DEVICE_H_ */
+
 
 

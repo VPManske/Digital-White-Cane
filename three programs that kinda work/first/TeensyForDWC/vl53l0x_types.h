@@ -1,5 +1,5 @@
 /*******************************************************************************
-Copyright © 2015, STMicroelectronics International N.V.
+Copyright ï¿½ 2015, STMicroelectronics International N.V.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -109,3 +109,4 @@ typedef signed char int8_t;
 typedef uint32_t FixPoint1616_t;
 
 #endif /* VL53L0X_TYPES_H_ */
+

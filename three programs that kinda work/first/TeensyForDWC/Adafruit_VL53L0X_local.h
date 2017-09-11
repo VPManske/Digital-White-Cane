@@ -15,9 +15,9 @@
  ****************************************************/
 
 #if ( ARDUINO >= 100 )
-  #include "Arduino.h"
+#include "Arduino.h"
 #else
-  #include "WProgram.h"
+#include "WProgram.h"
 #endif
 
 #include "i2c_t3_local.h"
@@ -25,26 +25,29 @@
 
 #define VL53L0X_I2C_ADDR  0x29
 
-class Adafruit_VL53L0X
+class Adafruit_VL53L0X_local
 {
   public:
-    boolean       begin(uint8_t i2c_addr = VL53L0X_I2C_ADDR, boolean debug = false );
+    boolean       begin(uint8_t i2c_addr = VL53L0X_I2C_ADDR, boolean debug = false, i2c_pins pins = I2C_PINS_16_17 );
     boolean       setAddress(uint8_t newAddr);
 
-    VL53L0X_Error 
-      rangingTest(VL53L0X_RangingMeasurementData_t* pRangingMeasurementData, 
-		  boolean debug = false) 
-    { return getSingleRangingMeasurement(pRangingMeasurementData, debug); };
+    VL53L0X_Error
+    rangingTest(VL53L0X_RangingMeasurementData_t* pRangingMeasurementData,
+                boolean debug = false)
+    {
+      return getSingleRangingMeasurement(pRangingMeasurementData, debug);
+    };
 
     VL53L0X_Error getSingleRangingMeasurement( VL53L0X_RangingMeasurementData_t* pRangingMeasurementData, boolean debug = false );
     void          printRangeStatus( VL53L0X_RangingMeasurementData_t* pRangingMeasurementData );
 
     VL53L0X_Error                     Status      = VL53L0X_ERROR_NONE;
 
- private:
-  VL53L0X_Dev_t                       MyDevice;
-  VL53L0X_Dev_t                       *pMyDevice  = &MyDevice;
-  VL53L0X_Version_t                   Version;
-  VL53L0X_Version_t                   *pVersion   = &Version;
-  VL53L0X_DeviceInfo_t                DeviceInfo;
+  private:
+    VL53L0X_Dev_t                       MyDevice;
+    VL53L0X_Dev_t                       *pMyDevice  = &MyDevice;
+    VL53L0X_Version_t                   Version;
+    VL53L0X_Version_t                   *pVersion   = &Version;
+    VL53L0X_DeviceInfo_t                DeviceInfo;
 };
+

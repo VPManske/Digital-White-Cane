@@ -1,5 +1,5 @@
 /*******************************************************************************
-Copyright © 2015, STMicroelectronics International N.V.
+Copyright ï¿½ 2015, STMicroelectronics International N.V.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -113,6 +113,7 @@ void trace_print_module_function(uint32_t module, uint32_t level, uint32_t funct
 #endif
 
 #endif  /* _VL53L0X_PLATFORM_LOG_H_ */
+
 
 
 

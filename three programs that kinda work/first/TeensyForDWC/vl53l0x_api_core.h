@@ -1,5 +1,5 @@
 /*******************************************************************************
-Copyright © 2016, STMicroelectronics International N.V.
+Copyright ï¿½ 2016, STMicroelectronics International N.V.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -106,3 +106,4 @@ uint16_t VL53L0X_encode_timeout(uint32_t timeout_macro_clks);
 #endif
 
 #endif /* _VL53L0X_API_CORE_H_ */
+

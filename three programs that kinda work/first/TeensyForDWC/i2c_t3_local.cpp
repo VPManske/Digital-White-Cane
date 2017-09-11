@@ -285,22 +285,23 @@ void i2c_t3::begin_(struct i2cStruct* i2c, uint8_t bus, i2c_mode mode, uint8_t a
 //
 i2c_pins i2c_t3::getDefaultPins_(uint8_t bus)
 {
-    i2c_pins defpins = I2C_PINS_18_19;
+    i2c_pins defpins = I2C_PINS_16_17;
     #if defined(__MKL26Z64__)
-        defpins = (bus == 1) ? I2C_PINS_22_23 : I2C_PINS_18_19; // LC
+        defpins = (bus == 1) ? I2C_PINS_22_23 : I2C_PINS_16_17; // LC
     #elif defined(__MK20DX128__)
         defpins = I2C_PINS_18_19; // 3.0
     #elif defined(__MK20DX256__)
-        defpins = (bus == 1) ? I2C_PINS_29_30 : I2C_PINS_18_19; // 3.1/3.2
+        defpins = (bus == 1) ? I2C_PINS_29_30 : I2C_PINS_16_17; // 3.1/3.2
     #elif defined(__MK64FX512__)
         defpins = (bus == 2) ? I2C_PINS_3_4   :
                   (bus == 1) ? I2C_PINS_37_38 :
-                               I2C_PINS_18_19; // 3.5
+                               I2C_PINS_16_17; // 3.5
     #elif defined(__MK66FX1M0__)
         defpins = (bus == 3) ? I2C_PINS_56_57 :
                   (bus == 2) ? I2C_PINS_3_4   :
                   (bus == 1) ? I2C_PINS_37_38 :
-                               I2C_PINS_18_19; // 3.6
+                              I2C_PINS_16_17;
+                             //  I2C_PINS_18_19; // 3.6
     #endif
     return defpins;
 }
