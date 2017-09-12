@@ -81,6 +81,10 @@ void Adafruit_DRV2605::go() {
   writeRegister8(DRV2605_REG_GO, 1);
 }
 
+bool Adafruit_DRV2605::stillGoing() {
+  return 0 != readRegister8(DRV2605_REG_GO);
+}
+
 void Adafruit_DRV2605::stop() {
   writeRegister8(DRV2605_REG_GO, 0);
 }

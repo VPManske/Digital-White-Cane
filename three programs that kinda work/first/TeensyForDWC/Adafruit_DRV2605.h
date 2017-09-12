@@ -81,6 +81,7 @@ class Adafruit_DRV2605 {
   void selectLibrary(uint8_t lib);
   void go(void);
   void stop(void);
+  bool stillGoing(void);
   void setMode(uint8_t mode);
   void setRealtimeValue(uint8_t rtp);
   // Select ERM (Eccentric Rotating Mass) or LRA (Linear Resonant Actuator) vibration motor
