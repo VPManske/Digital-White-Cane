@@ -18,6 +18,7 @@ uint8_t i2cAddr[5] = {2, 3,  5, 7, 9};
 uint8_t lastEffect[5] = {0, 0, 0, 0, 0};
 uint32_t lastEffectStart[5] = {0, 0, 0, 0, 0};
 uint32_t lastEffectEnd[5] = {0, 0, 0, 0, 0};
+const boolean use_haptic_rtp = true;
 
 #define TCAADDR 0x71 // Why didn't we leave it at 0x70???
 
@@ -36,13 +37,61 @@ void tcaselect(uint8_t i) {
 }
 void init_haptic(int hapticId) {
   tcaselect(hapticId);
-  drv.begin();
+ 
+ 
+  if ( use_haptic_rtp ) {
+    // We are using 2V LRA
+    
+    drv.writeRegister8(DRV2605_REG_FEEDBACK, 0b10110110); // Bit 7 1:LRA Mode
+    // bits 6-4 0b011: 4x FB_BRAKE_FACTOR
+    // bits 3-2 0b01: medium LOOP_GAIN
+    // bits 1-0 0b10: LRA Mode 20x BEMF_GAIN
+    // at 205 Hz which means a half cycle is 2.439ms which is close to
+    // (19*0.1) + 0.5 = 2.4ms 19dec is 0x13 or that with 0x80 for STARTUP_BOOST to get 0X93
+    drv.writeRegister8(DRV2605_REG_CONTROL1, 0x93);
+    drv.writeRegister8(DRV2605_REG_CONTROL2, 0b01011010); // Unidirectional mode on,
+    // rest of bit fields are default values including SAMPLE_TIME:2 which is 200us
+    drv.writeRegister8(DRV2605_REG_CONTROL3, 0b10001100); //NG_THRESHOLD: 2 (4 % default)
+    // ERM_OPEN_LOOP:0 (Closed loop, doesn't matter, we aren't using ERM)
+    // SUPPLY_COMP_DIS:0 Enabled
+    // DATA_FORMAT_RTP:1 Unsigned (0 to 255, not -128 to +127)
+    // LRA_DRIVE_MODE: 1 twice per cycle (more precise control)
+    // N_PWM_ANALOG: 0 PWM Input (we aren't using PWM or Analog, but if we did...)
+    // LRA_OPEN_LOOP: 0 Auto-resonance mode
+    
+    drv.writeRegister8(DRV2605_REG_RATEDV, 65); // equation 3 of page 20 or DRV2605 datasheet
+    // Note that SAMPLE_TIME is 200us and the
+    // LRA frequency is 205 Hz
 
-  drv.selectLibrary(1);
+    drv.writeRegister8(DRV2605_REG_CLAMPV, 95); // equation 7 page 21
+    drv.writeRegister8(DRV2605_REG_MODE,DRV2605_MODE_AUTOCAL); // Choose autocal mode
+    drv.go(); // Run chosen mode
+    Serial.print("Calibrating ");
+    Serial.print(hapticId);
+    long beginCal = millis();
+    long nextDot = beginCal + 100;
+    while(drv.stillGoing()) {
+      if ( millis() > nextDot ) {
+        Serial.print(" .");
+        nextDot += 100;
+        if ( nextDot > beginCal + 3000 ) {
+          break;
+        }
+      }
+    }
+    Serial.print(" done after ");
+    Serial.print(millis() - beginCal);
+    Serial.println("ms.");
+    drv.writeRegister8(DRV2605_REG_MODE, DRV2605_MODE_REALTIME);
+    drv.go(); // Run chosen mode
+  } else {
+    drv.begin();
+    drv.selectLibrary(1);
 
-  // I2C trigger by sending 'go' command
-  // default, internal trigger when sending GO command
-  drv.setMode(DRV2605_MODE_INTTRIG);
+    // I2C trigger by sending 'go' command
+    // default, internal trigger when sending GO command
+    drv.setMode(DRV2605_MODE_INTTRIG);
+  }
 }
 void init_tof(int tofId) {
   VL53L0X_RangingMeasurementData_t datum;
@@ -94,9 +143,9 @@ void setup() {
   Wire.begin();// Default i2c bus kludged in the library to be on pins 16 and 17
 
   Wire1.begin();
-//  const uint32_t i2cDefaultTimeout = 2100000; // (2.1 seconds).(Has to be longer than the longest haptic waveform)
-//  Wire.setDefaultTimeout(i2cDefaultTimeout);
-//  Wire1.setDefaultTimeout(i2cDefaultTimeout);
+  //  const uint32_t i2cDefaultTimeout = 2100000; // (2.1 seconds).(Has to be longer than the longest haptic waveform)
+  //  Wire.setDefaultTimeout(i2cDefaultTimeout);
+  //  Wire1.setDefaultTimeout(i2cDefaultTimeout);
   init_tofs_haptic();
 
 
@@ -111,20 +160,19 @@ void checkHealth() {
   }
 }
 void waitUntil(uint32_t goal) {
-// This needs to deal with the clock wrapping.
-  uint32_t now=millis();
-  while( now < goal ) {
+  // This needs to deal with the clock wrapping.
+  uint32_t now = millis();
+  while ( now < goal ) {
     delay(10);
     now = millis();
   }
 }
+int strengths[] = {200, 128, 64, 32, 16, 8, 4, 2, 1, 0};
 void loop() {
   VL53L0X_RangingMeasurementData_t datum;
   VL53L0X_Error errCode;
   long startTime = millis();
   for (int i = 0; i < num_of_sensors; i ++ ) {
-
-
     errCode = tofs[i].getSingleRangingMeasurement(&datum,  false );
     int ledStat = (datum.RangeMilliMeter > 100 );
     digitalWrite(leds[i], ledStat );
@@ -133,53 +181,65 @@ void loop() {
     Serial.print( datum.RangeMilliMeter );
     Serial.print("  ");
     if ( datum.RangeMilliMeter < 1000 ) {
-
-      int effect = 0;
-      if ( datum.RangeMilliMeter < 200 ) {
-        effect = 47; // Buzz 1 - 100%
-      } else if ( datum.RangeMilliMeter < 400 ) {
-        effect = 48; // Buzz 2 - 80%
-      } else if ( datum.RangeMilliMeter < 600 ) {
-        effect = 49;  // Buzz 3 - 60%
-      } else if ( datum.RangeMilliMeter < 800 ) {
-        effect = 50;  // Buzz 4 - 40%
-      } else if ( datum.RangeMilliMeter < 1000 ) {
-        effect = 50;  // Buzz 5 - 20%
-      }
-      uint32_t now = millis();
-      // Don't ask to start playing a new waveform until the last one is finished.
-      // If the current waveform will finish in 100 ms or less, just wait.
-      if ( now < lastEffectEnd[i] &&  now > (lastEffectEnd[i]-100) ) {
-        Serial.print("#");
-        waitUntil(lastEffectEnd[i]);
-        now =millis();
-      }
-      // If the current waveform is done, start the next one, otherwise
-      // skip that one and get it on the next cycle.
-      // I am assuming I will be able to speed up cycles so the skip function is useful.
-      // As of this version, the loop tends to take 115 or more milliseconds. The
-      // waveform takes around 210 milliseconds. So we never skip. (other waveforms take longer).
-      if ( now >= lastEffectEnd[i] ) {
+      if ( use_haptic_rtp ) {
         tcaselect(i);
-        /*  if ( lastEffect[i] != effect ) {
-            tcaselect(i);
-            drv.stop();
-            lastEffect[i] = effect;
-            drv.setWaveform(0, effect);
-            drv.setWaveform(1, 0);
-            drv.go();
-          } */
-  
-        drv.stop();
-        Serial.print("* ");
-        lastEffectStart[i] = now;
-        lastEffectEnd[i] = now + 210; // With 200 milliseconds, sometimes it got confused.
-        lastEffect[i] = effect;
-        drv.setWaveform(0, effect);
-        drv.setWaveform(1, 0);
-        drv.go();
+        Serial.print(strengths[datum.RangeMilliMeter / 100]);
+        drv.setRealtimeValue(strengths[datum.RangeMilliMeter / 100]);
+        Serial.print(" ");
+      } else {
+        int effect = 0;
+        if ( datum.RangeMilliMeter < 200 ) {
+          effect = 47; // Buzz 1 - 100%
+        } else if ( datum.RangeMilliMeter < 400 ) {
+          effect = 48; // Buzz 2 - 80%
+        } else if ( datum.RangeMilliMeter < 600 ) {
+          effect = 49;  // Buzz 3 - 60%
+        } else if ( datum.RangeMilliMeter < 800 ) {
+          effect = 50;  // Buzz 4 - 40%
+        } else if ( datum.RangeMilliMeter < 1000 ) {
+          effect = 50;  // Buzz 5 - 20%
+        }
+        uint32_t now = millis();
+        // Don't ask to start playing a new waveform until the last one is finished.
+        // If the current waveform will finish in 100 ms or less, just wait.
+        if ( now < lastEffectEnd[i] &&  now > (lastEffectEnd[i] - 100) ) {
+          Serial.print("#");
+          waitUntil(lastEffectEnd[i]);
+          now = millis();
+        }
+        // If the current waveform is done, start the next one, otherwise
+        // skip that one and get it on the next cycle.
+        // I am assuming I will be able to speed up cycles so the skip function is useful.
+        // As of this version, the loop tends to take 115 or more milliseconds. The
+        // waveform takes around 210 milliseconds. So we never skip. (other waveforms take longer).
+        if ( now >= lastEffectEnd[i] ) {
+          tcaselect(i);
+          /*  if ( lastEffect[i] != effect ) {
+              tcaselect(i);
+              drv.stop();
+              lastEffect[i] = effect;
+              drv.setWaveform(0, effect);
+              drv.setWaveform(1, 0);
+              drv.go();
+            } */
+
+          drv.stop();
+          Serial.print("* ");
+          lastEffectStart[i] = now;
+          lastEffectEnd[i] = now + 210; // With 200 milliseconds, sometimes it got confused.
+          lastEffect[i] = effect;
+          drv.setWaveform(0, effect);
+          drv.setWaveform(1, 0);
+          drv.go();
+        }
       }
 
+    } else {
+      if ( use_haptic_rtp ) {
+        tcaselect(i);
+        drv.setRealtimeValue(0);
+        Serial.print("00 ");
+      }
     }
   }
   Serial.println(millis() - startTime);
