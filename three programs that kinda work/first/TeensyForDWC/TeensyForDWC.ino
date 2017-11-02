@@ -1,8 +1,11 @@
 /* uses i2c_t3.h works on Teensy LC and gives no errors.
 */
+
+// #include <Adafruit_NeoPixel.h>
 #include "Adafruit_VL53L0X_local.h"
 #include "Adafruit_DRV2605.h"
 #include "i2c_t3_local.h"
+
 
 #define DEBUG false
 Adafruit_DRV2605 drv;
@@ -42,28 +45,45 @@ void init_haptic(int hapticId) {
   if ( use_haptic_rtp ) {
     // We are using 2V LRA
     
-    drv.writeRegister8(DRV2605_REG_FEEDBACK, 0b10110110); // Bit 7 1:LRA Mode
+    drv.writeRegister8(DRV2605_REG_FEEDBACK, 0b10110110); // Register 0x1A 
+    // Bit 7 1:LRA Mode
     // bits 6-4 0b011: 4x FB_BRAKE_FACTOR
     // bits 3-2 0b01: medium LOOP_GAIN
     // bits 1-0 0b10: LRA Mode 20x BEMF_GAIN
-    // at 205 Hz which means a half cycle is 2.439ms which is close to
-    // (19*0.1) + 0.5 = 2.4ms 19dec is 0x13 or that with 0x80 for STARTUP_BOOST to get 0X93
-    drv.writeRegister8(DRV2605_REG_CONTROL1, 0x93);
-    drv.writeRegister8(DRV2605_REG_CONTROL2, 0b01011010); // Unidirectional mode on,
-    // rest of bit fields are default values including SAMPLE_TIME:2 which is 200us
-    drv.writeRegister8(DRV2605_REG_CONTROL3, 0b10001100); //NG_THRESHOLD: 2 (4 % default)
+   
+    
+    drv.writeRegister8(DRV2605_REG_CONTROL1, 0x94);  // register 0x1B
+     // at 205 Hz which means a half cycle is 2.439ms which is close to
+    // (20*0.1) + 0.5 = 2.5ms 20dec is 0x14 or that with 0x80 for STARTUP_BOOST to get 0X94
+    
+    drv.writeRegister8(DRV2605_REG_CONTROL2, 0b01110101); // register 0x1C 
+    // BIDIR_INPUT = 0 : Unidirectional input mode (requires closed loop)
+    // BRAKE_STABILIZER = 1 : improve stability
+    //  SAMPLE_TIME:3 which is 300us
+    // BLANKING_TIME : 1 valid for most devices
+    // IDISS_TIME : 1 valid for most devices
+    drv.writeRegister8(DRV2605_REG_CONTROL3, 0b10001100); //0x1D 
+    // NG_THRESHOLD: 2 (4 % default)
     // ERM_OPEN_LOOP:0 (Closed loop, doesn't matter, we aren't using ERM)
     // SUPPLY_COMP_DIS:0 Enabled
     // DATA_FORMAT_RTP:1 Unsigned (0 to 255, not -128 to +127)
     // LRA_DRIVE_MODE: 1 twice per cycle (more precise control)
     // N_PWM_ANALOG: 0 PWM Input (we aren't using PWM or Analog, but if we did...)
     // LRA_OPEN_LOOP: 0 Auto-resonance mode
+   
+    drv.writeRegister8(DRV2605_REG_CONTROL4,0x30);   // 
+    // AUTO_CAL_TIME 1000ms - 1200ms
+    // Not touching OTP
     
-    drv.writeRegister8(DRV2605_REG_RATEDV, 65); // equation 3 of page 20 or DRV2605 datasheet
-    // Note that SAMPLE_TIME is 200us and the
+    drv.writeRegister8(DRV2605_REG_RATEDV, 81); // equation 3 of page 22 of DRV2605 datasheet
+    // Note that SAMPLE_TIME is 300us and the
     // LRA frequency is 205 Hz
+    // Rated voltage is 2.0V plugged into the equation gives us:
+    // (.02071 * 81)/sqrt(1-(4*0.0003 + 0.0003)*205)
+    // 2.015838
 
-    drv.writeRegister8(DRV2605_REG_CLAMPV, 95); // equation 7 page 21
+
+    drv.writeRegister8(DRV2605_REG_CLAMPV, 137); // equation 7 page 21
     drv.writeRegister8(DRV2605_REG_MODE,DRV2605_MODE_AUTOCAL); // Choose autocal mode
     drv.go(); // Run chosen mode
     Serial.print("Calibrating ");
@@ -167,53 +187,56 @@ void waitUntil(uint32_t goal) {
     now = millis();
   }
 }
-int strengths[] = {200, 128, 64, 32, 16, 8, 4, 2, 1, 0};
+// Values used at Cleveland Clinic hackathon
+// int strengths[] = {254, 250, 240, 230, 220, 210, 200, 190, 180, 170, 160, 150, 140, 130, 120, 110, 100, 90, 0, 0};
+
+int strengths[] = {255, 235, 215, 205, 195, 175, 155, 135, 115, 95, 75, 55, 50, 45, 40, 35, 30, 25, 20, 0};
 void loop() {
   VL53L0X_RangingMeasurementData_t datum;
   VL53L0X_Error errCode;
   long startTime = millis();
   for (int i = 0; i < num_of_sensors; i ++ ) {
     errCode = tofs[i].getSingleRangingMeasurement(&datum,  false );
-    int ledStat = (datum.RangeMilliMeter > 100 );
+    int ledStat = (datum.RangeMilliMeter > 1000 );
     digitalWrite(leds[i], ledStat );
     Serial.print(i);
     Serial.print(": ");
     Serial.print( datum.RangeMilliMeter );
     Serial.print("  ");
-    if ( datum.RangeMilliMeter < 1000 ) {
+    if ( datum.RangeMilliMeter < 2000 ) {
       if ( use_haptic_rtp ) {
         tcaselect(i);
         Serial.print(strengths[datum.RangeMilliMeter / 100]);
         drv.setRealtimeValue(strengths[datum.RangeMilliMeter / 100]);
         Serial.print(" ");
       } else {
-        int effect = 0;
-        if ( datum.RangeMilliMeter < 200 ) {
-          effect = 47; // Buzz 1 - 100%
-        } else if ( datum.RangeMilliMeter < 400 ) {
-          effect = 48; // Buzz 2 - 80%
-        } else if ( datum.RangeMilliMeter < 600 ) {
-          effect = 49;  // Buzz 3 - 60%
-        } else if ( datum.RangeMilliMeter < 800 ) {
-          effect = 50;  // Buzz 4 - 40%
-        } else if ( datum.RangeMilliMeter < 1000 ) {
-          effect = 50;  // Buzz 5 - 20%
-        }
-        uint32_t now = millis();
+     //   int effect = 0;
+    //    if ( datum.RangeMilliMeter < 200 ) {
+  //        effect = 47; // Buzz 1 - 100%
+  //      } else if ( datum.RangeMilliMeter < 400 ) {
+  //        effect = 48; // Buzz 2 - 80%
+  //      } else if ( datum.RangeMilliMeter < 600 ) {
+  //        effect = 49;  // Buzz 3 - 60%
+  //      } else if ( datum.RangeMilliMeter < 800 ) {
+  //        effect = 50;  // Buzz 4 - 40%
+  //      } else if ( datum.RangeMilliMeter < 1000 ) {
+  //        effect = 50;  // Buzz 5 - 20%
+  //      }
+  //      uint32_t now = millis();
         // Don't ask to start playing a new waveform until the last one is finished.
         // If the current waveform will finish in 100 ms or less, just wait.
-        if ( now < lastEffectEnd[i] &&  now > (lastEffectEnd[i] - 100) ) {
-          Serial.print("#");
-          waitUntil(lastEffectEnd[i]);
-          now = millis();
-        }
+  //      if ( now < lastEffectEnd[i] &&  now > (lastEffectEnd[i] - 100) ) {
+   //       Serial.print("#");
+ //         waitUntil(lastEffectEnd[i]);
+ //         now = millis();
+ //       }
         // If the current waveform is done, start the next one, otherwise
         // skip that one and get it on the next cycle.
         // I am assuming I will be able to speed up cycles so the skip function is useful.
         // As of this version, the loop tends to take 115 or more milliseconds. The
         // waveform takes around 210 milliseconds. So we never skip. (other waveforms take longer).
-        if ( now >= lastEffectEnd[i] ) {
-          tcaselect(i);
+ //       if ( now >= lastEffectEnd[i] ) {
+   //       tcaselect(i);
           /*  if ( lastEffect[i] != effect ) {
               tcaselect(i);
               drv.stop();
@@ -223,15 +246,15 @@ void loop() {
               drv.go();
             } */
 
-          drv.stop();
-          Serial.print("* ");
-          lastEffectStart[i] = now;
-          lastEffectEnd[i] = now + 210; // With 200 milliseconds, sometimes it got confused.
-          lastEffect[i] = effect;
-          drv.setWaveform(0, effect);
-          drv.setWaveform(1, 0);
-          drv.go();
-        }
+   //       drv.stop();
+ //         Serial.print("* ");
+  //        lastEffectStart[i] = now;
+  //        lastEffectEnd[i] = now + 210; // With 200 milliseconds, sometimes it got confused.
+  //        lastEffect[i] = effect;
+ //         drv.setWaveform(0, effect);
+ //         drv.setWaveform(1, 0);
+//drv.go();
+       // }
       }
 
     } else {
@@ -245,4 +268,5 @@ void loop() {
   Serial.println(millis() - startTime);
   // checkHealth();
 }
+
 
