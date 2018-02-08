@@ -35,13 +35,14 @@ boolean Adafruit_VL53L0X_local::begin(uint8_t i2c_addr, boolean debug, i2c_pins 
 
     return false;
   }
-  
+  Serial.println("first");
   Status = VL53L0X_DataInit( &MyDevice );         // Data initialization
- 
+ Serial.println("second");
   if (! setAddress(i2c_addr) ) {
+    Serial.println("failed 1");
     return false;
   }
- 
+ Serial.println("third");
   Status = VL53L0X_GetDeviceInfo( &MyDevice, &DeviceInfo );
 
   if ( Status == VL53L0X_ERROR_NONE )  {

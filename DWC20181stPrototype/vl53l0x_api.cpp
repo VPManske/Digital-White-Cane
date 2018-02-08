@@ -372,9 +372,10 @@ VL53L0X_Error VL53L0X_DataInit(VL53L0X_DEV Dev)
   VL53L0X_DeviceParameters_t CurrentParameters;
   int i;
   uint8_t StopVariable;
-  
+
+  Serial.println("In VL53L0X_DataInit");
   LOG_FUNCTION_START("");
- 
+Serial.println("In VL53L0X_DataInit 1.5");  
   /* by default the I2C is running at 1V8 if you want to change it you
      need to include this define at compilation level. */
 #ifdef USE_I2C_2V8
@@ -384,7 +385,7 @@ VL53L0X_Error VL53L0X_DataInit(VL53L0X_DEV Dev)
                               0xFE,
                               0x01);
 #endif
- 
+Serial.println("In VL53L0X_DataInit 1"); 
   /* Set I2C standard mode */
   if (Status == VL53L0X_ERROR_NONE)
     Status = VL53L0X_WrByte(Dev, 0x88, 0x00);
@@ -393,7 +394,7 @@ VL53L0X_Error VL53L0X_DataInit(VL53L0X_DEV Dev)
   uint8_t b;
   Status = VL53L0X_RdByte(Dev, 0xC0, &b);
   //Serial.print("WHOAMI: 0x"); Serial.println(b, HEX);
-
+Serial.println("In VL53L0X_DataInit 2");
   /* read WHO_AM_I */
 
   VL53L0X_SETDEVICESPECIFICPARAMETER(Dev, ReadDataFromDeviceDone, 0);
@@ -405,19 +406,19 @@ VL53L0X_Error VL53L0X_DataInit(VL53L0X_DEV Dev)
 
   /* Default value is 1000 for Linearity Corrective Gain */
   PALDevDataSet(Dev, LinearityCorrectiveGain, 1000);
-
+Serial.println("In VL53L0X_DataInit 3");
   /* Dmax default Parameter */
   PALDevDataSet(Dev, DmaxCalRangeMilliMeter, 400);
   PALDevDataSet(Dev, DmaxCalSignalRateRtnMegaCps,
                 (FixPoint1616_t)((0x00016B85))); /* 1.42 No Cover Glass*/
-
+Serial.println("In VL53L0X_DataInit 3.1");
   /* Set Default static parameters
     set first temporary values 9.44MHz * 65536 = 618660 */
   VL53L0X_SETDEVICESPECIFICPARAMETER(Dev, OscFrequencyMHz, 618660);
 
   /* Set Default XTalkCompensationRateMegaCps to 0  */
   VL53L0X_SETPARAMETERFIELD(Dev, XTalkCompensationRateMegaCps, 0);
-
+Serial.println("In VL53L0X_DataInit 3.2");
   /* Get default parameters */
   Status = VL53L0X_GetDeviceParameters(Dev, &CurrentParameters);
 
@@ -445,6 +446,7 @@ VL53L0X_Error VL53L0X_DataInit(VL53L0X_DEV Dev)
   Status |= VL53L0X_WrByte(Dev, 0x00, 0x01);
   Status |= VL53L0X_WrByte(Dev, 0xFF, 0x00);
   Status |= VL53L0X_WrByte(Dev, 0x80, 0x00);
+  Serial.println("In VL53L0X_DataInit 4");
 
   /* Enable all check */
   for (i = 0; i < VL53L0X_CHECKENABLE_NUMBER_OF_CHECKS; i++) {
@@ -507,11 +509,12 @@ VL53L0X_Error VL53L0X_DataInit(VL53L0X_DEV Dev)
        VL53L0X_StaticInit */
     PALDevDataSet(Dev, PalState, VL53L0X_STATE_WAIT_STATICINIT);
   }
-
+Serial.println("In VL53L0X_DataInit 5");
   if (Status == VL53L0X_ERROR_NONE)
     VL53L0X_SETDEVICESPECIFICPARAMETER(Dev, RefSpadsInitialised, 0);
   // Serial.println(F("VL53LOX_DataInit z"));
   LOG_FUNCTION_END(Status);
+  Serial.println("In VL53L0X_DataInit 6");
   return Status;
 }
 
