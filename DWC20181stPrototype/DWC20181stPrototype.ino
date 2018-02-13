@@ -24,7 +24,7 @@ class Colors
 Colors led_color[5];
 int num_of_sensors = 5;
 
-uint8_t leds[5] = {21, 20, 91, 18, 15};
+
 uint8_t xshut[5] = {0, 3,  14, 7, 9};
 // uint8_t xshut[5] = {2, 3,  5, 7, 9};
 uint8_t i2cAddr[5] = {2, 3,  5, 7, 9};
@@ -47,17 +47,19 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(5, PIN, NEO_RGB + NEO_KHZ800);
 #define TCAADDR 0x71 // Why didn't we leave it at 0x70???
 
 void tcaselect(uint8_t i) {
-  if (i > 7) return;
-  int res;
+  if ( haptic_present ) {
+    if (i > 7) return;
+    int res;
 
-  Wire.beginTransmission(TCAADDR);
+    Wire.beginTransmission(TCAADDR);
 
-  res = Wire.write(1 << i);
-  if ( res != 1 ) {
-    Serial.print("res not expected: ");
-    Serial.println(res);
+    res = Wire.write(1 << i);
+    if ( res != 1 ) {
+      Serial.print("res not expected: ");
+      Serial.println(res);
+    }
+    Wire.endTransmission();
   }
-  Wire.endTransmission();
 }
 void init_haptic(int hapticId) {
   tcaselect(hapticId);
@@ -213,9 +215,9 @@ void setup() {
 
   strip.show();
   delay(200);
-  strip.setPixelColor(2, strip.Color(255, 0, 0, 50));
-  strip.setPixelColor(3, strip.Color(0, 255, 0, 50));
-  strip.setPixelColor(4, strip.Color(0, 0, 255, 50));
+  strip.setPixelColor(2, strip.Color(255, 100, 100, 50));
+  strip.setPixelColor(3, strip.Color(100, 255, 100, 50));
+  strip.setPixelColor(4, strip.Color(100, 100, 255, 50));
   strip.setPixelColor(5, strip.Color(255, 0, 0, 50));
   strip.setPixelColor(0, strip.Color(0, 255, 0, 50));
   strip.setPixelColor(1, strip.Color(0, 0, 255, 50));
@@ -236,13 +238,32 @@ void setup() {
   //  Wire.setDefaultTimeout(i2cDefaultTimeout);
   //  Wire1.setDefaultTimeout(i2cDefaultTimeout);
   init_tofs_haptic();
-
-
 }
+
 void rangeToLEDColor(int ledNo, int range) {
- 
-    strip.setPixelColor(ledNo, range/10,50,200 - range/10);
-    
+
+  if ( range < 50 ) {
+    strip.setPixelColor(ledNo, strip.Color(0, 255, 0, 75));
+  } else if ( range < 80 ) {
+    strip.setPixelColor(ledNo, strip.Color(120, 255, 0, 50));
+  } else if ( range < 110 ) {
+    strip.setPixelColor(ledNo, strip.Color(240, 180, 0, 50));
+  } else if ( range < 140 ) {
+    strip.setPixelColor(ledNo, strip.Color(255, 50, 0, 50));
+  } else if ( range < 170 ) {
+    strip.setPixelColor(ledNo, strip.Color(255, 0,100, 50));
+  } else if ( range < 200 ) {
+    strip.setPixelColor(ledNo, strip.Color(200, 0, 200, 50));
+  } else if ( range < 230 ) {
+    strip.setPixelColor(ledNo, strip.Color(100, 0, 255, 50));
+  } else if ( range < 300 ) {
+    strip.setPixelColor(ledNo, strip.Color(50, 50, 255, 50));
+  } else if ( range < 600 ) {
+    strip.setPixelColor(ledNo, strip.Color(50, 100, 255, 50));
+  } else {
+    strip.setPixelColor(ledNo, strip.Color(0, 0, 255, 50));
+  }
+  strip.show();
 }
 void checkHealth() {
   if ( Wire.getError() >= 2 || Wire1.getError() >= 2 ) {
@@ -267,13 +288,14 @@ void waitUntil(uint32_t goal) {
 int strengths[] = {255, 235, 215, 205, 195, 175, 155, 135, 115, 95, 75, 55, 50, 45, 40, 35, 30, 25, 20, 0};
 
 void loop() {
+
   VL53L0X_RangingMeasurementData_t datum;
   VL53L0X_Error errCode;
   long startTime = millis();
   for (int i = 0; i < num_of_sensors; i ++ ) {
     errCode = tofs[i].getSingleRangingMeasurement(&datum,  false );
-    int ledStat = (datum.RangeMilliMeter > 1000 );
-    digitalWrite(leds[i], ledStat );
+
+
     Serial.print(i);
     Serial.print(": ");
     Serial.print( datum.RangeMilliMeter );
@@ -281,64 +303,22 @@ void loop() {
     if ( datum.RangeMilliMeter < 2000 ) {
       if ( use_haptic_rtp ) {
         tcaselect(i);
-        rangeToLEDColor(i,datum.RangeMilliMeter);
-        Serial.print(strengths[datum.RangeMilliMeter / 100]); 
+        rangeToLEDColor(i, datum.RangeMilliMeter);
         if ( haptic_present ) {
+          Serial.print(strengths[datum.RangeMilliMeter / 100]);
           drv.setRealtimeValue(strengths[datum.RangeMilliMeter / 100]);
         }
         Serial.print(" ");
-      } else {
-        //   int effect = 0;
-        //    if ( datum.RangeMilliMeter < 200 ) {
-        //        effect = 47; // Buzz 1 - 100%
-        //      } else if ( datum.RangeMilliMeter < 400 ) {
-        //        effect = 48; // Buzz 2 - 80%
-        //      } else if ( datum.RangeMilliMeter < 600 ) {
-        //        effect = 49;  // Buzz 3 - 60%
-        //      } else if ( datum.RangeMilliMeter < 800 ) {
-        //        effect = 50;  // Buzz 4 - 40%
-        //      } else if ( datum.RangeMilliMeter < 1000 ) {
-        //        effect = 50;  // Buzz 5 - 20%
-        //      }
-        //      uint32_t now = millis();
-        // Don't ask to start playing a new waveform until the last one is finished.
-        // If the current waveform will finish in 100 ms or less, just wait.
-        //      if ( now < lastEffectEnd[i] &&  now > (lastEffectEnd[i] - 100) ) {
-        //       Serial.print("#");
-        //         waitUntil(lastEffectEnd[i]);
-        //         now = millis();
-        //       }
-        // If the current waveform is done, start the next one, otherwise
-        // skip that one and get it on the next cycle.
-        // I am assuming I will be able to speed up cycles so the skip function is useful.
-        // As of this version, the loop tends to take 115 or more milliseconds. The
-        // waveform takes around 210 milliseconds. So we never skip. (other waveforms take longer).
-        //       if ( now >= lastEffectEnd[i] ) {
-        //       tcaselect(i);
-        /*  if ( lastEffect[i] != effect ) {
-            tcaselect(i);
-            drv.stop();
-            lastEffect[i] = effect;
-            drv.setWaveform(0, effect);
-            drv.setWaveform(1, 0);
-            drv.go();
-          } */
-
-        //       drv.stop();
-        //         Serial.print("* ");
-        //        lastEffectStart[i] = now;
-        //        lastEffectEnd[i] = now + 210; // With 200 milliseconds, sometimes it got confused.
-        //        lastEffect[i] = effect;
-        //         drv.setWaveform(0, effect);
-        //         drv.setWaveform(1, 0);
-        //drv.go();
-        // }
       }
 
     } else {
       if ( use_haptic_rtp ) {
+        strip.setPixelColor(i, strip.Color(0, 0, 0, 50));
+        strip.show();
         tcaselect(i);
-        drv.setRealtimeValue(0);
+        if ( haptic_present ) {
+          drv.setRealtimeValue(0);
+        }
         Serial.print("00 ");
       }
     }
