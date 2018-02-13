@@ -251,7 +251,7 @@ void rangeToLEDColor(int ledNo, int range) {
   } else if ( range < 140 ) {
     strip.setPixelColor(ledNo, strip.Color(255, 50, 0, 50));
   } else if ( range < 170 ) {
-    strip.setPixelColor(ledNo, strip.Color(255, 0,100, 50));
+    strip.setPixelColor(ledNo, strip.Color(255, 0, 100, 50));
   } else if ( range < 200 ) {
     strip.setPixelColor(ledNo, strip.Color(200, 0, 200, 50));
   } else if ( range < 230 ) {
@@ -263,7 +263,7 @@ void rangeToLEDColor(int ledNo, int range) {
   } else {
     strip.setPixelColor(ledNo, strip.Color(0, 0, 255, 50));
   }
-  strip.show();
+
 }
 void checkHealth() {
   if ( Wire.getError() >= 2 || Wire1.getError() >= 2 ) {
@@ -314,7 +314,6 @@ void loop() {
     } else {
       if ( use_haptic_rtp ) {
         strip.setPixelColor(i, strip.Color(0, 0, 0, 50));
-        strip.show();
         tcaselect(i);
         if ( haptic_present ) {
           drv.setRealtimeValue(0);
@@ -323,6 +322,7 @@ void loop() {
       }
     }
   }
+  strip.show();
   Serial.println(millis() - startTime);
   // checkHealth();
 }
