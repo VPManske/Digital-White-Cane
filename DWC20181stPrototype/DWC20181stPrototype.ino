@@ -313,7 +313,7 @@ void loop() {
 
     } else {
       if ( use_haptic_rtp ) {
-        strip.setPixelColor(i, strip.Color(0, 0, 0, 50));
+        strip.setPixelColor(i, strip.Color(0, 0, 50, 50));
         tcaselect(i);
         if ( haptic_present ) {
           drv.setRealtimeValue(0);
